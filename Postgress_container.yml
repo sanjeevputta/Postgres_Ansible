@@ -1,0 +1,72 @@
+- name: Run Postgresql container
+  hosts: all
+  gather_facts: true
+  become: yes
+  tasks:
+    - name: Start docker service
+      service:
+        name: docker
+        state: started
+
+    - name: install pip dependencies
+      pip:
+        name: docker
+        
+    - name: ensure docker and dependencies are installed
+      apt: name=docker-engine update_cache=yes
+
+- name: Create Postgres Container
+      docker_container:
+        name: PG_Container
+        image: postgres:14.4-alpine
+        state: started
+        recreate: yes
+        ports:
+          - "5432:5432"
+        volumes:
+          - /home/PG_Container:/var/lib/postgresql/data
+        env:
+          POSTGRES_ROOT_PASSWORD: Password
+          POSTGRES_DATABASE: postgresql
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: myuser
+          
+      - name: restart postgres
+        service: name=postgresql state=restarted
+        
+- name: postgresql backup | create backup directory
+  become: true
+  
+  task:
+    -name: "take backup every 3 hours"
+     ansible.builtin.debug:
+       msg: "{{ lookup("pipe", 'date +%*-%*-%*@$3:%*:*%*')}}"
+     igoner_error: true  
+   
+    -name: "Set timestamp of the backup"
+      set_fact:
+        now: "{{ lookup("pipe", "date +%F-%T") }}"
+
+    -name: "Create a backup directory"
+     file:
+       path: "/var/lib/postgresql/backups/{{ now }}/"
+       state: directory
+       owner: postgres
+       mode: 0700
+       
+    - name: "Back up the database"
+      postgresql_db:
+        state: Present
+        name: "PG_Container"
+        target: "/var/lib/postgresql/backups/{{ now }}/PG_Container.dump.gz"
+    become: yes
+    become_user: postgres
+      
+    - name: "Fetch backup from the server"
+       fetch:
+         src: "/var/lib/postgresql/backups/{{ now }}/PG_Container.dump.gz"
+         dest: "backups/{{ now }}/PG_Container.dump.gz"
+         flat: yes
+
+
+
