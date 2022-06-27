@@ -58,14 +58,14 @@
       postgresql_db:
         state: Present
         name: "PG_Container"
-        target: "/var/lib/postgresql/backups/{{ now }}/PG_Container.dump.gz"
+        target: "/var/lib/postgresql/backups/{{ now }}/PG_Container.gz"
     become: yes
     become_user: postgres
       
     - name: "Fetch backup from the server"
        fetch:
-         src: "/var/lib/postgresql/backups/{{ now }}/PG_Container.dump.gz"
-         dest: "backups/{{ now }}/PG_Container.dump.gz"
+         src: "/var/lib/postgresql/backups/{{ now }}/PG_Container.gz"
+         dest: "backups/{{ now }}/PG_Container.gz"
          flat: yes
 
 
